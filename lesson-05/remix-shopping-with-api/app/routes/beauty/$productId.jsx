@@ -1,4 +1,4 @@
-import { redirect, Link } from "remix";
+import { redirect, Link, useTransition, Form } from "remix";
 import { useLoaderData } from "remix";
 import PageHeader from "~/components/PageHeader";
 import Button from "~/components/Button.jsx";
@@ -7,7 +7,7 @@ import db from "~/db/beauty/db.server";
 import star from "~/resources/assets/star.svg";
 import { useState } from "react";
 
-export const loader = async function ({ params }) {
+export const loader = async function({ params }) {
   const product = await fetch(
     `http://localhost:3000/api/beauty/${params.productId}`
   );
@@ -19,7 +19,7 @@ export const loader = async function ({ params }) {
   return product;
 };
 
-export const action = async function ({ request, params }) {
+export const action = async function({ request, params }) {
   const form = await request.formData();
   if (form.get("_method") === "delete") {
     // TODO: Create an API route and send a DELETE request to it
@@ -35,6 +35,10 @@ export const action = async function ({ request, params }) {
 
 export default function Post() {
   const product = useLoaderData();
+  let transition = useTransition();
+  let isDeleting =
+    transition.state === "submitting" &&
+    transition.submission.formData.get("_action") === "delete";
 
   return (
     <div>
@@ -51,12 +55,20 @@ export default function Post() {
               <img src={star} className="h-4 ml-1" />
             </div>
           </div>
-          <form method="post" className="mt-5 pt-2 border-t border-gray-200">
+          <Form method="post" className="mt-5 pt-2 border-t border-gray-200">
             <input type="hidden" name="_method" value="delete" />
-            <Button type="submit" destructive>
-              Delete
-            </Button>
-          </form>
+            <button
+              type="submit"
+              className="bg-red-500 text-white font-bold py-2 px-4 rounded my-3 inline-block"
+              type="submit"
+              name="_action"
+              value="delete"
+              disabled={isDeleting}
+              destructive
+            >
+              {isDeleting ? "Deleting ..." : "Delete"}
+            </button>
+          </Form>
           <form method="post" className="mt-5 pt-2 border-t border-gray-200">
             <input type="hidden" name="_method" value="update" />
             <Button type="submit">

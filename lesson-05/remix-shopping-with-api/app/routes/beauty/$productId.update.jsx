@@ -1,4 +1,11 @@
-import { Link, useLoaderData } from "remix";
+import {
+  Link,
+  useLoaderData,
+  useActionData,
+  useTransition,
+  json,
+  Form,
+} from "remix";
 import Breadcrumb from "~/components/Breadcrumb";
 import PageHeader from "~/components/PageHeader";
 import Button from "~/components/Button.jsx";
@@ -9,11 +16,24 @@ export async function loader({ params }) {
 }
 
 export const action = async ({ request, params }) => {
-  const form = await request.formData();
-  const title = form.get("title");
-  const description = form.get("description");
-  const img = form.get("img");
-  const price = form.get("price");
+  const formData = await request.formData();
+  const title = formData.get("title");
+  const description = formData.get("description");
+  const img = formData.get("img");
+  const price = formData.get("price");
+
+  const errors = {};
+
+  if (!title) errors.title = true;
+  if (!description) errors.description = true;
+  if (!img) errors.img = true;
+  if (!price) errors.price = true;
+
+  console.log(errors);
+  if (Object.keys(errors).length > 0) {
+    const values = Object.fromEntries(formData);
+    return json({ errors, values });
+  }
 
   const updatedProduct = {
     id: params.productId,
@@ -39,13 +59,18 @@ export const action = async ({ request, params }) => {
 
 export default function Update() {
   const product = useLoaderData();
+  const transition = useTransition();
+  let isUpdating =
+    transition.state === "submitting" &&
+    transition.submission.formData.get("_action") === "update";
 
+  const actionData = useActionData();
   return (
     <>
       <Breadcrumb links={[{ to: "/update", title: "Update" }]} />
       <PageHeader title="Update product" subtitle="Make it a good one" />
       <div>
-        <form method="post" className="w-64">
+        <Form method="post" className="w-64">
           <label htmlFor="title">Title</label>
           <input
             type="text"
@@ -54,6 +79,9 @@ export default function Update() {
             defaultValue={product.title}
             className="border p-1 border-gray-200 w-full"
           />
+          {actionData?.errors.title ? (
+            <p style={{ color: "red" }}>You're missing the Title</p>
+          ) : null}
           <label htmlFor="description">Description</label>
           <textarea
             name="description"
@@ -61,6 +89,9 @@ export default function Update() {
             className="border p-1 border-gray-200 w-full"
             defaultValue={product.description}
           ></textarea>
+          {actionData?.errors.description ? (
+            <p style={{ color: "red" }}>You're missing the Description</p>
+          ) : null}
           <label htmlFor="img">Image URL</label>
           <input
             type="text"
@@ -69,6 +100,9 @@ export default function Update() {
             className="border p-1 border-gray-200 w-full"
             defaultValue={product.img}
           />
+          {actionData?.errors.img ? (
+            <p style={{ color: "red" }}>You're missing the Image</p>
+          ) : null}
           <label htmlFor="price">Price</label>
           <input
             type="text"
@@ -77,10 +111,22 @@ export default function Update() {
             className="border p-1 border-gray-200 w-full"
             defaultValue={product.price}
           />
+          {actionData?.errors.price ? (
+            <p style={{ color: "red" }}>You're missing the Price</p>
+          ) : null}
           <div className="mt-3">
-            <Button type="submit">Add product</Button>
+            <button
+              type="submit"
+              className="bg-blue-500 text-white font-bold py-2 px-4 rounded my-3 inline-block"
+              type="submit"
+              name="_action"
+              value="update"
+              disabled={isUpdating}
+            >
+              {isUpdating ? "Updating ..." : "Update"}
+            </button>
           </div>
-        </form>
+        </Form>
       </div>
     </>
   );
